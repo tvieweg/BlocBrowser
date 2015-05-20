@@ -9,10 +9,15 @@
 #import "BLCWebBrowserViewController.h"
 #import "BLCAwesomeFloatingToolbar.h"
 
+//button name constants
 #define kBLCWebBrowserBackString NSLocalizedString(@"Back", @"Back command")
 #define kBLCWebBrowserForwardString NSLocalizedString(@"Forward", @"Forward command")
 #define kBLCWebBrowserStopString NSLocalizedString(@"Stop", @"Stop command")
 #define kBLCWebBrowserRefreshString NSLocalizedString(@"Refresh", @"Reload command")
+
+//screen size constants
+#define minToolbarWidth 100
+
 
 @interface BLCWebBrowserViewController() <UIWebViewDelegate, UITextFieldDelegate, BLCAwesomeFloatingToolbarDelegate>
 
@@ -37,6 +42,7 @@
     //create webview
     self.webview = [[UIWebView alloc] init];
     self.webview.delegate = self;
+
     
     //create text field for URL bar
     self.textField = [[UITextField alloc] init];
@@ -66,6 +72,9 @@
     //activity indicator
     self.activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.activityIndicator];
+    
+    self.awesomeToolbar.frame = CGRectMake(20, 100, 280, 60);
+
 }
 
 - (void) viewWillLayoutSubviews {
@@ -78,7 +87,6 @@
     self.textField.frame = CGRectMake(0, 0, width, itemHeight);
     self.webview.frame = CGRectMake(0, CGRectGetMaxY(self.textField.frame), width,browserHeight);
     
-    self.awesomeToolbar.frame = CGRectMake(20, 100, 280, 60);
 }
 
 #pragma mark - UITextFieldDelegate ************************************************************************
@@ -140,7 +148,7 @@
 
 #pragma mark - BLCAwesomeFloatingToolbarDelegate
 
-- (void) floatingToolbar:(BLCAwesomeFloatingToolbar *)awesome didSelectButtonWithTitle:(NSString *)title {
+- (void) floatingToolbar:(BLCAwesomeFloatingToolbar *)toolbar didSelectButtonWithTitle:(NSString *)title {
     if ([title isEqual:kBLCWebBrowserBackString]) {
         [self.webview goBack];
     } else if ([title isEqual:kBLCWebBrowserForwardString]) {
@@ -151,6 +159,27 @@
         [self.webview reload];
     }
 }
+
+- (void) floatingToolbar:(BLCAwesomeFloatingToolbar *)toolbar didTryToPanWithOffset:(CGPoint)offset {
+    CGPoint startingPoint = toolbar.frame.origin;
+    CGPoint newPoint = CGPointMake(startingPoint.x + offset.x, startingPoint.y + offset.y);
+    
+    CGRect potentialNewFrame = CGRectMake(newPoint.x, newPoint.y, CGRectGetWidth(toolbar.frame), CGRectGetHeight(toolbar.frame));
+    
+    //new functionality to allow user to pull toolbar off page if desired.
+    if (CGRectContainsRect(self.view.bounds, toolbar.bounds)) {
+        toolbar.frame = potentialNewFrame; 
+    }
+}
+
+- (void) floatingToolbar:(BLCAwesomeFloatingToolbar *)toolbar didTryToPinchWithSizeChange:(CGFloat)scale {
+    CGFloat scaledWidth = toolbar.frame.size.width * scale;
+    
+    if (scaledWidth < self.view.bounds.size.width && scaledWidth > minToolbarWidth) {
+        toolbar.transform = CGAffineTransformMakeScale(scale, scale);
+    }
+}
+
 
 #pragma mark - Miscellaneous ************************************************************************
 
